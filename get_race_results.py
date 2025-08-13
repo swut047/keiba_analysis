@@ -1,6 +1,8 @@
-from bs4 import BeautifulSoup
-import requests
 import os
+import time as t
+
+import requests
+from bs4 import BeautifulSoup
 
 
 def extract_race_result(file_path):
@@ -48,7 +50,7 @@ def get_race_result(base_url, target_year, place, time, day, race):
     print(f"URL: {url}")
     # User-Agentを指定
     headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
+        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"
     }
 
     # target_race_nameのディレクトリが存在しない場合作成
@@ -61,7 +63,7 @@ def get_race_result(base_url, target_year, place, time, day, race):
     # ファイルがすでに存在している場合はスキップ
     if os.path.exists(file_name):
         print(f"{file_name} はすでに存在します。スキップします。")
-        return 0
+        return True
 
     # HTTP GETリクエストを送信し、HTMLを取得
     response = requests.get(url, headers=headers)
@@ -78,7 +80,9 @@ def get_race_result(base_url, target_year, place, time, day, race):
         )  # サーバーが指定するエンコーディングを推測
 
         # HTMLをBeautiful Soupでパース（エンコーディングを指定）
-        soup = BeautifulSoup(response.content, "html.parser", from_encoding="utf-8")
+        soup = BeautifulSoup(
+            response.content, "html.parser", from_encoding="utf-8"
+        )
 
         # レース結果のテーブルを取得
         result_table = soup.find("table", class_="RaceTable01")
@@ -88,14 +92,16 @@ def get_race_result(base_url, target_year, place, time, day, race):
             with open(file_name, "w", encoding="utf-8") as file:
                 file.write(response.text)
             print(f"{file_name} に保存しました。")
+            t.sleep(3)  # 3秒待機
+            return True
         else:
             print(f"{file_name}にはレース結果のテーブルが見つかりませんでした。")
+            t.sleep(3)  # 3秒待機
+            return False
 
 
 # 年単位ですべてのレース結果を取得する場合
 def get_race_results_per_year(target_year):
-    import time as t
-
     base_url = "https://race.netkeiba.com/race/result.html?race_id="
 
     # 最初の2桁は開催場所
@@ -108,23 +114,52 @@ def get_race_results_per_year(target_year):
     places = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
     times = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
     days = ["01", "02", "03", "04", "05", "06", "07", "08"]
-    races = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+    races = [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+    ]
 
     # すべての組み合わせを取得
-    save_times = 0
-    for place in places[4:]:
+    get_result = True
+    get_result_tmp = True
+
+    for place in places[:]:
+        if not get_result:
+            get_result = True
         for time in times:
+            # 同一開催場所で連続で開催回の結果が取得できない場合はスキップ
+            if get_result == False and get_result_tmp == False:
+                break
+            get_result_tmp = get_result
+            if not get_result:
+                get_result = True
             for day in days:
+                if not get_result:
+                    break
                 for race in races:
-                    get_race_result(base_url, target_year, place, time, day, race)
-                    save_times += 1
-                    if save_times % 1 == 0:
-                        t.sleep(1)  # 1秒待機
+                    get_result = get_race_result(
+                        base_url, target_year, place, time, day, race
+                    )
+                    if not get_result:
+                        break
 
 
 def main():
-    target_year = 2025
-    get_race_results_per_year(target_year)
+    start_year = 2025
+    end_year = 2025
+
+    for year in range(start_year, end_year + 1):
+        get_race_results_per_year(year)
 
 
 if __name__ == "__main__":
