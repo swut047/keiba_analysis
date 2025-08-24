@@ -80,9 +80,7 @@ def get_race_result(base_url, target_year, place, time, day, race):
         )  # サーバーが指定するエンコーディングを推測
 
         # HTMLをBeautiful Soupでパース（エンコーディングを指定）
-        soup = BeautifulSoup(
-            response.content, "html.parser", from_encoding="utf-8"
-        )
+        soup = BeautifulSoup(response.content, "html.parser", from_encoding="utf-8")
 
         # レース結果のテーブルを取得
         result_table = soup.find("table", class_="RaceTable01")
@@ -155,7 +153,7 @@ def get_race_results_per_year(target_year):
 
 
 def main():
-    start_year = 2025
+    start_year = 2020
     end_year = 2025
 
     for year in range(start_year, end_year + 1):
