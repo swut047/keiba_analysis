@@ -9,7 +9,6 @@ def extract_race_result(file_path):
     # HTMLファイルを読み込む
     with open(file_path, "r", encoding="utf-8") as file:
         soup = BeautifulSoup(file, "html.parser")
-
     # レース結果のテーブルを取得
     result_table = soup.find("table", class_="RaceTable01")
 

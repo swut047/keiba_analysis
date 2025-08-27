@@ -91,9 +91,9 @@ for i, html_file in enumerate(tqdm(html_files, desc="Processing race results")):
     elif "ダ" in text:
         course_type = "ダート"
     else:
-        course_type = "不明"
+        course_type = "障害"
 
-    distance_match = re.search(r"([芝ダ])(\d+)m", text)
+    distance_match = re.search(r"([芝ダ障])(\d+)m", text)
     if distance_match:
         distance = int(distance_match.group(2))
 
@@ -133,7 +133,7 @@ for i, html_file in enumerate(tqdm(html_files, desc="Processing race results")):
                 float(tansho_payout_element.text.strip("円").replace(",", "")) / 100
             ]
         except ValueError:  # 1着が同着の場合
-            print(f"Invalid payout format in {html_file}")
+            # print(f"Invalid payout format in {html_file}")
             tansho_payout = [
                 float(payout.replace(",", "")) / 100
                 for payout in tansho_payout_element.text.split("円")[:2]
@@ -169,6 +169,8 @@ for i, html_file in enumerate(tqdm(html_files, desc="Processing race results")):
 
             # 1着の場合
             if rankings[j] == "1":
+                if '中村' in jockey:
+                    print(f"Processing {jockey} in file: {html_file} {race_info}")
                 target_results_dict[jockey][race_info]["race_results"]["1着"] += 1
                 target_results_dict[jockey][race_info]["return_rate"][
                     "単勝回収率"
@@ -183,7 +185,7 @@ for i, html_file in enumerate(tqdm(html_files, desc="Processing race results")):
                     float(payouts[1]) / 100
                 )
             # 3着の場合
-            if rankings[j] == 3:
+            if rankings[j] == "3":
                 if len(payouts) < 3:
                     # 7頭以下のレースでは2着までしか複勝がない場合がある
                     target_results_dict[jockey][race_info]["race_results"][
@@ -242,7 +244,7 @@ for jockey in target_results_dict.keys():
     df = pd.DataFrame(flat_data)
 
     # 集計結果を保存
-    save_dir = f"summary_results/{jockey}/"
+    save_dir = f"win_rate_results/{jockey}/"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     df = df.sort_values("コース")
