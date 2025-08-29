@@ -56,8 +56,8 @@ def find_and_merge_csv(directory_path, output_file):
 # 使用例
 if __name__ == "__main__":
     # 探索するディレクトリのパス
-    directory_path = "win_rate_results"
+    directory_path = "analysis/win_rate_results"
     # 出力ファイルのパス
-    output_file = "win_rate_concat.csv"
+    output_file = "analysis/win_rate_concat.csv"
 
     find_and_merge_csv(directory_path, output_file)

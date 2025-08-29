@@ -1,5 +1,6 @@
 import os
 import time as t
+import argparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -129,6 +130,7 @@ def get_race_results_per_year(target_year):
     # すべての組み合わせを取得
     get_result = True
     get_result_tmp = True
+    last_race = "01"
 
     for place in places[:]:
         if not get_result:
@@ -142,22 +144,32 @@ def get_race_results_per_year(target_year):
                 get_result = True
             for day in days:
                 if not get_result:
-                    break
+                    if last_race == "01":  # 諸事上で12Rまで開催されないことがある、その時の対応
+                        break
                 for race in races:
                     get_result = get_race_result(
                         base_url, target_year, place, time, day, race
                     )
                     if not get_result:
+                        last_race = race
                         break
+                    else:
+                        get_result_tmp = get_result
 
 
 def main():
-    start_year = 2020
-    end_year = 2025
+    parser = argparse.ArgumentParser(description='競馬のレース結果を特定の年範囲で取得します。')
+    parser.add_argument('--start_year', type=int, default=2020,
+                        help='取得を開始する年（デフォルト: 2020）')
+    parser.add_argument('--end_year', type=int, default=2025,
+                        help='取得を終了する年（デフォルト: 2025）')
+    args = parser.parse_args()
+
+    start_year = args.start_year
+    end_year = args.end_year
 
     for year in range(start_year, end_year + 1):
         get_race_results_per_year(year)
-
 
 if __name__ == "__main__":
     main()

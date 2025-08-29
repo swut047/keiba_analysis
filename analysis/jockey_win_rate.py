@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import numpy as np
 from copy import deepcopy
 
 import pandas as pd
@@ -21,7 +22,7 @@ def is_garbled(text):
 
 
 # htmlファイルの取得
-target_dir = "race_results/"
+target_dir = "data_collect/race_results/"
 html_files = glob.glob(target_dir + "**/*.html", recursive=True)
 print(len(html_files), "files found.")
 
@@ -41,18 +42,18 @@ place_list = [
 
 # 保存するデータのフォーマット定義
 target_race_results = {"1着": 0, "2着": 0, "3着": 0, "4着以下": 0}
-target_return_rate = {"単勝回収率": 0.0, "複勝回収率": 0.0}
+target_return_rate = {"単勝回収率": [], "複勝回収率": []}
 target_jockey_name = []
 target_jockey_foreign, target_jockey_foreign_dict = [], {}
 target_results_dict = {}
 
 # 対象となる騎手をテキストから読み込む
-filepath = "jockey_list.txt"
+filepath = "data_collect/jockey_list.txt"
 with open(filepath, "r", encoding="utf-8") as file:
     target_jockey_name = file.read().splitlines()
 
 # 表記ゆれの外人への対応
-filepath = "jockey_corresponding.txt"
+filepath = "data_collect/jockey_corresponding.txt"
 with open(filepath, "r", encoding="utf-8") as file:
     target_jockey_foreign = file.read().splitlines()
     for line in target_jockey_foreign:
@@ -67,8 +68,8 @@ for jockey in target_jockey_name:
     target_results_dict[jockey] = {}
 
 for i, html_file in enumerate(tqdm(html_files, desc="Processing race results")):
-    """if i > 1000:
-    break"""
+    # if i > 1000:
+    #     break
 
     with open(html_file, encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
@@ -169,21 +170,22 @@ for i, html_file in enumerate(tqdm(html_files, desc="Processing race results")):
 
             # 1着の場合
             if rankings[j] == "1":
-                if '中村' in jockey:
-                    print(f"Processing {jockey} in file: {html_file} {race_info}")
                 target_results_dict[jockey][race_info]["race_results"]["1着"] += 1
                 target_results_dict[jockey][race_info]["return_rate"][
                     "単勝回収率"
-                ] += tansho_payout[j]
-                target_results_dict[jockey][race_info]["return_rate"]["複勝回収率"] += (
+                ].append(tansho_payout[j])
+                target_results_dict[jockey][race_info]["return_rate"]["複勝回収率"].append(
                     float(payouts[0]) / 100
                 )
             # 2着の場合
             if rankings[j] == "2":
                 target_results_dict[jockey][race_info]["race_results"]["2着"] += 1
-                target_results_dict[jockey][race_info]["return_rate"]["複勝回収率"] += (
+                target_results_dict[jockey][race_info]["return_rate"]["複勝回収率"].append(
                     float(payouts[1]) / 100
                 )
+                if "石川" in jockey:
+                    if float(payouts[1]) / 100 == 15.4:
+                        print(f"Debug 石川騎手2着: {html_file}")
             # 3着の場合
             if rankings[j] == "3":
                 if len(payouts) < 3:
@@ -195,7 +197,10 @@ for i, html_file in enumerate(tqdm(html_files, desc="Processing race results")):
                     target_results_dict[jockey][race_info]["race_results"]["3着"] += 1
                     target_results_dict[jockey][race_info]["return_rate"][
                         "複勝回収率"
-                    ] += (float(payouts[2]) / 100)
+                    ].append(float(payouts[2]) / 100)
+                    if "石川" in jockey:
+                        if float(payouts[2]) / 100 == 15.4:
+                            print(f"Debug 石川騎手3着: {html_file}")
             # 4着以下の場合
             else:
                 target_results_dict[jockey][race_info]["race_results"]["4着以下"] += 1
@@ -218,12 +223,35 @@ for jockey in target_results_dict.keys():
             print(f"Skipping jockey: {jockey} {key}")
             print("skip")
             continue
-        target_return_rate_tmp["単勝回収率"] = round(
-            target_return_rate_tmp["単勝回収率"] / race_count, 2
-        )
-        target_return_rate_tmp["複勝回収率"] = round(
-            target_return_rate_tmp["複勝回収率"] / race_count, 2
-        )
+
+        tanshou_tmp = deepcopy(target_return_rate_tmp["単勝回収率"])
+        fukushou_tmp = deepcopy(target_return_rate_tmp["複勝回収率"])
+
+        if len(tanshou_tmp) == 0:
+            target_return_rate_tmp["単勝回収率"] = 0.0
+            target_return_rate_tmp["単勝平均"] = 0.0
+            target_return_rate_tmp["単勝標準偏差"] = 0.0
+        else:
+            target_return_rate_tmp["単勝回収率"] = round(
+                sum(tanshou_tmp) / race_count, 2
+            )
+            target_return_rate_tmp["単勝平均"] = round(
+                sum(tanshou_tmp) / len(tanshou_tmp), 2
+            )
+            target_return_rate_tmp["単勝標準偏差"] = round(np.sqrt(sum([(x-target_return_rate_tmp["単勝平均"])**2 for x in tanshou_tmp]) / len(tanshou_tmp)), 2)
+
+        if len(fukushou_tmp) == 0:
+            target_return_rate_tmp["複勝回収率"] = 0.0
+            target_return_rate_tmp["複勝平均"] = 0.0
+            target_return_rate_tmp["複勝標準偏差"] = 0.0
+        else:
+            target_return_rate_tmp["複勝回収率"] = round(
+                sum(fukushou_tmp) / race_count, 2
+            )
+            target_return_rate_tmp["複勝平均"] = round(
+                sum(fukushou_tmp) / len(fukushou_tmp), 2
+            )
+            target_return_rate_tmp["複勝標準偏差"] = round(np.sqrt(sum([(x-target_return_rate_tmp["複勝平均"])**2 for x in fukushou_tmp]) / len(fukushou_tmp)), 2)
 
         target_results_dict[jockey][key]["race_results"] = target_race_results_tmp
         target_results_dict[jockey][key]["return_rate"] = target_return_rate_tmp
@@ -244,7 +272,7 @@ for jockey in target_results_dict.keys():
     df = pd.DataFrame(flat_data)
 
     # 集計結果を保存
-    save_dir = f"win_rate_results/{jockey}/"
+    save_dir = f"analysis/win_rate_results/{jockey}/"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     df = df.sort_values("コース")

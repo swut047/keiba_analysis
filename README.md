@@ -5,8 +5,8 @@ tools for analyzing keiba made with python
 
 ### データ収集
 
-- レース結果をnetkeibaから収集
-``` python3 data_collect/get_race_results.py```
+- レース結果をnetkeibaから収集（例：2020~2025までのレース結果を取得）
+```python data_collect/get_race_results.py --start_year 2020 --end_year 2025```
 - レース結果から騎手一覧を取得
 ``` python3 data_collect/collect_jockey_list.py```
 
@@ -20,4 +20,5 @@ tools for analyzing keiba made with python
 ### GUI
 
 - GUIで分析を行う
+  - コース名やその他条件を指定するとそれらに合致する条件下で回収率が1を超える騎手を表示
 ``` python3 gui/gui_test.py```

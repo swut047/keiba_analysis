@@ -163,5 +163,6 @@ cython_debug/
 *.html
 data_collect/race_results
 data_collect/win_rate_results
+analysis/win_rate_results
 **undo-tree**
 **.py~**
